@@ -1,0 +1,78 @@
+function createSheets() {
+  var ss = SpreadsheetApp.getActive();
+  var templateSheet = ss.getSheetByName("Template");
+  var prevSheetNames = [];
+  var lastValue = 0;
+  var i = 1;
+  while (i <= 10) {
+    var sheetName = "Sheet " + i;
+    if (ss.getSheetByName(sheetName) !== null) {
+      var prevSheet = ss.getSheetByName(sheetName);
+      lastValue = prevSheet.getRange(prevSheet.getLastRow(), 1).getValue();
+      i++;
+    } else {
+      ss.insertSheet(sheetName, {template: templateSheet});
+      var sheet = ss.getSheetByName(sheetName);
+      lastValue = updateColumns(sheet, prevSheetNames, lastValue + 1);
+      prevSheetNames.push(sheetName);
+      i++;
+    }
+  }
+}
+
+function updateColumns(sheet, startValue) {
+  var lastRow = sheet.getLastRow();
+  var counter = 1;
+
+  sheet.getRange(1, 1).setValue("Auto Number");
+  sheet.getRange("A2:A").setNumberFormat(0);
+
+  var valuesB = getRandomValuesB();
+  var valuesC = getRandomValuesC();
+
+  for (var ii = 2; ii <= 140001; ii++) {
+    var valueA = startValue + counter - 1;
+    sheet.getRange(ii, 1).setValue(valueA);
+    sheet.getRange(ii, 2).setValue(valuesB[ii - 2]);
+    sheet.getRange(ii, 3).setValue(valuesC[ii - 2][0]);
+    var valueD = valuesB[ii - 2] + "-" + valuesC[ii - 2][0];
+    while (sheet.getRange(2, 4, ii - 2, 1).getValues().flat().includes(valueD)) {
+      valuesB = getRandomValuesB();
+      valuesC = getRandomValuesC();
+      sheet.getRange(ii, 2).setValue(valuesB[ii - 2]);
+      sheet.getRange(ii, 3).setValue(valuesC[ii - 2][0]);
+      valueD = valuesB[ii - 2] + "-" + valuesC[ii - 2][0];
+    }
+    sheet.getRange(ii, 4).setValue(valueD);
+    counter++;
+  }
+  return sheet.getRange(140001, 1).getValue();
+}
+
+function getRandomValuesB() {
+  var values = [];
+  for (var i = 0; i < 140000; ++i) {
+    var chars = ["'"];
+    for (var j = 0; j < 3; j++) {
+      var charCode;
+      if (Math.random() < 0.5) {
+        // Generate a random uppercase letter
+        charCode = Math.floor(Math.random() * (90 - 65 + 1)) + 65;
+      } else {
+        // Generate a random digit
+        charCode = Math.floor(Math.random() * 10) + 48;
+      }
+      chars.push(String.fromCharCode(charCode));
+    }
+    values.push(chars.join(""));
+  }
+  return values;
+}
+
+function getRandomValuesC() {
+  var values = [];
+  for (var i = 0; i < 140000; ++i) {
+    values.push([Math.floor((Math.random() * 100) + 1)]);
+  }
+  return values;
+}
