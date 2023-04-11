@@ -49,6 +49,24 @@ function updateColumns(sheet, startValue) {
   return sheet.getRange(140001, 1).getValue();
 }
 
+function isDuplicate(valueD, sheet, prevSheetNames) {
+  var values = sheet.getRange(2, 2, 140000, 1).getValues().flat();
+   // Check if the value is in the array of column D values for the current sheet or any previous sheet
+  if (values.includes(valueD) || prevSheetNames.some(function(sheetName) {
+    var prevSheet = SpreadsheetApp.getActive().getSheetByName(sheetName);
+    return prevSheet.getRange(2, 2, 140000, 1).getValues().flat().includes(valueD);
+  })) {
+    // If the value is a duplicate, generate a new set of random values for column D and check again
+    var newValuesB = getRandomValuesB();
+    var newValuesC = getRandomValuesC();
+    var newValueD = newValuesB + newValuesC 
+    return isDuplicate(newValuesB[Math.floor(Math.random() * newValuesB.length)], sheet, prevSheetNames);
+  } else {
+    // If the value is not duplicate, return false to indicate that it is valid
+    return false;
+  }
+}
+
 function getRandomValuesB() {
   var values = [];
   for (var i = 0; i < 140000; ++i) {
