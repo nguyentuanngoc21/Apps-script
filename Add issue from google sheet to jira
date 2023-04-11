@@ -1,0 +1,116 @@
+// Replace these values with your Jira API token, email, and the URL of your Jira instance.
+const JIRA_API_TOKEN = <YOUR_API>;
+const JIRA_EMAIL = <YOUR_EMAIL>';
+const JIRA_URL = 'https://<domain_in_jira>.atlassian.net';
+
+function onEdit() {
+  let sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Sheet1'); // Replace 'Sheet1' with the name of your sheet.
+  let source = sheet.getRange("A:M");
+  let data = source.getValues();
+  // Trigger only for a specific row (e.g., row 2).
+  try{
+    for (var n = 1; n <= 3; n++){
+    if (data[n][0] !== ''){
+        for (var m = 0; m <= 13; m++) {
+          if (data[n][m] !== '') {
+            //console.log(data[n][m]);
+            //Logger.log(n)
+            }
+          }
+    }
+    const summary = data[n][3];
+    //console.log(summary)
+    const isDuplicate = checkForDuplicateIssue(summary);
+    //console.log('check if it is duplicate', isDuplicate)
+    if (isDuplicate == false) {
+      createJiraIssue(data);
+      console.log('The task is not there')
+    } else {
+      console.log('A task with the same summary already exists. The new task will not be created.');
+    }
+    }
+  }
+  catch{
+    //console.log('we should stop going next line');
+  }
+}
+//////////////////////////////////
+
+//////////////////////////////////
+function checkForDuplicateIssue(summary) {
+  //const test = "This is a test 1"
+  var encode_1 = encodeURIComponent(summary).replace(/[!'()*""]/g, escape);
+  var summary = "%22" + encode_1 + "%22"
+  var searchJql = 'project = "IP\" AND summary ~ ';
+  var encode = encodeURIComponent(searchJql).replace(/[!'()*""]/g, escape);
+  const options = {
+    method: 'GET',
+    contentType: 'application/json',
+    headers: {
+      'Authorization': `Basic ${Utilities.base64Encode(`${JIRA_EMAIL}:${JIRA_API_TOKEN}`)}`,
+      'Accept': 'application/json'
+    }
+  };  
+  var url = 'https://earable.atlassian.net/rest/api/3/search?jql=' + encode + summary; // Changed the endpoint to /rest/api/3/search
+  console.log("url", url);
+  const response = UrlFetchApp.fetch(url, options);
+  //console.log(response.getResponseCode());
+  
+  if (response.getResponseCode() === 200) {
+    const jsonResponse = JSON.parse(response.getContentText());
+    if (jsonResponse.total > 0) { // Check if there are any issues returned
+      console.log("The issue has already been created");
+      return true;
+    } else {
+      console.log("Good, it is new!");
+      return false;
+    }
+  } else {
+    console.error('Error while searching for duplicate issues');
+    return false;
+  }
+}
+
+
+////////////////////////////////////
+function createJiraIssue(data) {
+  for (var n = 1; n <= data.length - 1; n++) { // Changed the loop condition to check the length of the data array
+    if (data[n] && data[n][0] !== '') {
+      var issueData = {
+        fields: {
+          project: {
+            key: <PJ_KEY>, // Replace this with your Jira project key.
+          },
+          summary: data[n][3], // Set the issue summary based on column D (index 3).
+          reporter: {
+            "id": data[n][0]
+          },
+          assignee: {
+            "id": data[n][0]
+          },
+          issuetype: {
+            name: 'Task' // Change this to the desired issue type.
+          }
+        }
+      };
+      console.log('check point', issueData);
+      var options = {
+        method: 'POST',
+        contentType: 'application/json',
+        headers: {
+          'Authorization': `Basic ${Utilities.base64Encode(`${JIRA_EMAIL}:${JIRA_API_TOKEN}`)}`,
+          'Accept': 'application/json'
+        },
+        payload: JSON.stringify(issueData)
+      };
+      
+      try {
+        var response = UrlFetchApp.fetch(`${JIRA_URL}/rest/api/3/issue`, options);
+        var jsonResponse = JSON.parse(response.getContentText());
+        console.log('Issue created: ', jsonResponse);
+      } catch (error) {
+        console.error('Error creating issue: ', error);
+      }
+    }
+  }
+}
