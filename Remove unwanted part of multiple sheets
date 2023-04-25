@@ -1,0 +1,17 @@
+function myFunction() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  var allSheets = ss.getSheets();
+
+  //console.log(allSheets.length)
+  for (var i = 0; i < allSheets.length; i++){
+    var no_sheet = allSheets[i]
+    console.log(no_sheet.getSheetName());
+    var rename = no_sheet.getSheetName();
+    // find the sheet containing the part "Copy of "
+    if (rename.match("Copy of ")){
+      no_sheet = no_sheet.setName(rename.replace("Copy of ", "")); //remove unwanted part - which is "Copy of " in this case
+      console.log(no_sheet);
+    }
+  }
+}
