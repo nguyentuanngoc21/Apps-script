@@ -1,0 +1,89 @@
+function applyFormulaToSelectedSheets() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var targetSheet = ss.getSheetByName("Danh sách"); // The sheet where the formula is applied
+  var sourceSheetNames = ["0127", "0120"]; // Define which sheets to use for calculations
+
+  var dataRange = targetSheet.getDataRange();
+  var data = dataRange.getValues(); // Get all data in the target sheet
+
+  // Define column positions (1-based index)
+  var colD = 4; // Column D (Labeler)
+  var colC = 3; // Column C (User ID)
+  var colE = 5; // Column E (Tỉ lệ lỗi)
+  var colF = 6; // Column F (Thời gian làm)
+  var colG = 7; // Column G (Số lượng làm)
+
+  // Iterate through rows in "Danh sách" sheet
+  for (var i = 1; i < data.length; i++) {
+    var labelerValue = data[i][colD - 1];
+    var C2Value = data[i][colC - 1];
+
+    if (labelerValue === "Labeler") {
+      var sum1 = 0;
+      var sum2 = 0;
+      var totalSum = 0;
+
+      var weightedSum = 0;
+      var weightedTotalSum = 0;
+
+      // Loop through only the specified sheets
+      for (var j = 0; j < sourceSheetNames.length; j++) {
+        var sheet = ss.getSheetByName(sourceSheetNames[j]);
+        if (!sheet) continue; // Skip if the sheet doesn't exist
+
+        var sheetData = sheet.getDataRange().getValues();
+
+        // Define column positions in source sheets (adjust as needed)
+        var colE_Src = 5; // Column E (Value)
+        var colH_Src = 8; // Column H (User ID)
+        var colQ_Src = 17; // Column Q (Status)
+        var colR_Src = 18; // Column R (Status: Done)
+        var colI_Src = 9; // Column I (Start Date)
+        var colJ_Src = 10; // Column J (End Date)
+
+        // Iterate through sheet rows
+        for (var k = 1; k < sheetData.length; k++) {
+          if (sheetData[k][colH_Src - 1] === C2Value && sheetData[k][colR_Src - 1] === "Done") {
+            totalSum += sheetData[k][colE_Src - 1];
+
+            if (sheetData[k][colQ_Src - 1] === "Trả về lần 1") {
+              sum1 += sheetData[k][colE_Src - 1];
+            } else if (sheetData[k][colQ_Src - 1] === "Trả về lần 2") {
+              sum2 += sheetData[k][colE_Src - 1] * 2;
+            }
+
+            // Calculate weighted sum
+            weightedSum += sheetData[k][colE_Src - 1];
+            // Calculate time difference in days (Column J - Column I)
+            var startDate = sheetData[k][colI_Src - 1];
+            var endDate = sheetData[k][colJ_Src - 1];
+            if (startDate instanceof Date && endDate instanceof Date) {
+              var timeDifference = (endDate - startDate) / (1000 * 3600 * 24); // Convert to days
+              weightedTotalSum += timeDifference;
+            }
+          }
+        }
+      }
+
+      // Prevent division by zero for Tỉ lệ lỗi
+      var resultE = totalSum !== 0 ? (sum1 + sum2) / totalSum : "No data";
+      data[i][colE - 1] = resultE;
+
+      // Calculate the result for Thời gian làm (Column F) - No division, just the total days
+      var resultF = weightedTotalSum; // This is the time difference in days
+      data[i][colF - 1] = resultF;
+
+      // Calculate the result for Số lượng làm (Column G)
+      var resultG = totalSum !== 0 ? totalSum : "No data";
+      data[i][colG - 1] = resultG;
+
+    } else {
+      data[i][colE - 1] = "Review chưa chốt cách tính";
+      data[i][colF - 1] = "Review chưa chốt cách tính";
+      data[i][colG - 1] = "Review chưa chốt cách tính";
+    }
+  }
+
+  // Write updated data back to the "Danh sách" sheet
+  dataRange.setValues(data);
+}
